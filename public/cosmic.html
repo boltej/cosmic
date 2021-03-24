@@ -1,0 +1,356 @@
+﻿<!doctype html>
+<html lang='en'>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <title>Cosmic Wimpout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+            background: darkslategray;
+        }
+
+        .scoreboard {
+            font-size: large;
+            font-weight: normal;
+            color: whitesmoke;
+        }
+
+        .currentPlayer {
+            border-style: solid;
+            border-radius: 0.4em;
+            border-width: 2px;
+            border-color: lawngreen
+        }
+
+        .pastPlayer {
+            border-style: solid;
+            border-radius: 0.4em;
+            border-width: 2px;
+            border-color: red;
+        }
+
+        .scoresContainer {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            align-content: stretch;
+            padding: 1em;
+            background-color: teal;
+            margin-bottom: 1em;
+        }
+
+        .score {
+            font-size: xx-large;
+            color: yellow;
+        }
+
+
+        table.sortable {
+            border-collapse: collapse;
+            width: 100%;
+            max-height: 10em;
+        }
+
+            table.sortable th, table.sortable td {
+                padding: 10px;
+                text-align: center;
+            }
+
+            table.sortable thead {
+                background-color: #000;
+                color: #fff;
+                overflow-y: auto;
+                height: 100px;
+            }
+
+            table.sortable th:hover {
+                cursor: pointer;
+            }
+
+            table.sortable td {
+                text-align: center;
+            }
+
+        .dice {
+            width: 128px;
+            height: 128px;
+            background-color: ivory;
+            padding: 0.1em;
+            margin-left: 0.2em;
+            margin-right: 0.2em;
+            border-style: solid;
+            border-color: black; /*
+            border-top-width: 8px;
+            border-bottom-width: 8px;
+            border-left-width:2px;
+            border-right-width: 2px; */
+            border-width:8px;
+        }
+
+        .diceImg {
+            width:100%;
+            height:100%;
+            border-width:8px;
+            border-style:solid;
+            border-color:black;
+        }
+
+        .isRerollImg {
+            border-color:darkmagenta;
+        }
+
+        .isFlash {
+            border-top-style: solid;
+            border-top-color: red;
+        }
+
+        /*.reRoll {
+            border-bottom-style: solid;
+            border-bottom-color: lawngreen;
+            border-bottom-width: 3px;
+        }*/
+        .rolled {
+            border-bottom-style: solid;
+            border-bottom-color: lawngreen;
+            border-bottom-width: 3px;
+        }
+
+        .scoringTile {
+            border-style: solid;
+            border-color: mediumpurple;
+            border-width: 3px;
+        }
+
+        .actionButton {
+            width:8em;
+            margin:1em;
+        }
+        .rerollCB {
+            margin-top:0.5em;
+            display:none;
+        }
+    </style>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.js"></script>
+
+    <script src="/socket.io/socket.io.js" defer></script>
+
+    <link rel="stylesheet" type="text/css" href="DataTables/datatables.min.css" />
+    <script type="text/javascript" src="DataTables/datatables.min.js"></script>
+
+    <script src="cosmic.js" defer></script>
+
+</head>
+
+<body style='background:darkslategrey'>
+    <div class="ui menu" style="margin-bottom:2px">
+        <div class="header item"
+             style="padding-right:2em;background-color: darkslategray;color:whitesmoke;font-size: large;">
+            Cosmic Wimpout
+        </div>
+        <div id='gameMsgPanel' class="ui message" style="width:100%;margin:0">
+            <div style="float:right">
+                <button id="gameMsgBtn" class="ui teal button" style="margin-left:2em">Start Game</button>
+            </div>
+            <div id='gameMsgHdr' class="header"></div>
+            <p id='gameMsgText'>
+            </p>
+        </div>
+        <div class="right item active">
+            <span id="player" style="font-size:1em;font-weight: bold;color:darkslategrey"></span>
+        </div>
+    </div>
+
+    <div id='mainPanel'>
+        <!--
+        <div id='bidPanel' class="ui raised teal hidden segment " style="margin:0">
+            <span id='currentBid' style="font-size:larger">Current Bid: None</span>
+            <hr />
+            <div id='yourBid'>
+                <span>Your Bid:</span>
+
+                <select id='ddlBids' class="ui selection dropdown" style="padding-top:0;padding-bottom:0;"></select>
+
+                <button id='placeBid' class="ui teal button" style='margin-left:2em;' onclick='PlaceBid(false);return false;'>Place Bid</button>
+
+                <i class="angle left icon"></i><i class="angle left icon"></i><i class="angle left icon"></i>
+                <span style='font-weight:bold;'> OR </span>
+                <i class="angle right icon"></i><i class="angle right icon"></i><i class="angle right icon"></i>
+                <button id='passBid' class="ui teal button" onclick="PlaceBid(true);return false;">Pass</button>
+            </div>
+        </div>
+        -->
+        <div id='gridPanel' class="ui grid" style="width:100%">
+            <div class="row">
+                <div class="ten wide column padded">
+
+                    <div class="ui raised black inverted segment" style="min-height:240px">
+                        <div class="ui teal ribbon label">The Table</div>
+                        <br />
+                        <div id="theTable" class="ui centered grid" style="margin-left:1em;margin-right:1em">
+                            <div class="row">
+                                <div style="display:inline-block">
+                                    <div id='dice-0' class='dice'><img id="dimg-0" class="diceImg" src='Images/sun-black.svg'/></div>
+                                    <div id='rr-dice-0' class="ui checkbox rerollCB" >
+                                        <input type="checkbox" name="cbDice0">
+                                        <label style='color:whitesmoke'>Re-roll</label>
+                                    </div>
+                                </div>
+
+                                <div style="display:inline-block">
+                                    <div id='dice-1' class='dice'><img id="dimg-1" class="diceImg" src='Images/sun-black.svg'/></div>
+                                    <div id='rr-dice-1' class="ui checkbox rerollCB">
+                                        <input type="checkbox" name="cbDice1">
+                                        <label style='color:whitesmoke'>Re-roll</label>
+                                    </div>
+                                </div>
+
+                                <div style="display:inline-block">
+                                    <div id='dice-2' class='dice'><img id="dimg-2" class="diceImg" src='Images/sun-black.svg'/></div>
+                                    <div id='rr-dice-2' class="ui checkbox rerollCB">
+                                        <input type="checkbox" name="cbDice2">
+                                        <label style='color:whitesmoke'>Re-roll</label>
+                                    </div>
+                                </div>
+
+                                <div style="display:inline-block">
+                                    <div id='dice-3' class='dice'><img id="dimg-3" class="diceImg" src='Images/sun-black.svg'/></div>
+                                    <div id='rr-dice-3' class="ui checkbox rerollCB">
+                                        <input type="checkbox" name="cbDice3">
+                                        <label style='color:whitesmoke'>Re-roll</label>
+                                    </div>
+                                </div>
+
+                                <div style="display:inline-block">
+                                    <div id='dice-4' class='dice'><img id="dimg-4" class="diceImg" src='Images/sun-black.svg'/></div>
+                                    <div id='rr-dice-4' class="ui checkbox rerollCB">
+                                        <input type="checkbox" name="cbDice4">
+                                        <label style='color:whitesmoke'>Re-roll</label>
+                                    </div>
+                                </div>
+
+                                <div style="margin-left:2em">
+                                    <div id='roll-score' class='' style="text-align:left;"></div>
+                                    <br />
+                                    <div id='roll-actions' class='' style="text-align:left"></div>
+                                    <br />
+                                    <button id="reRollBtn" class="ui teal button" style="width:8em" onclick="ReRoll(); return false;">Re-Roll</button>
+                                    <br />
+                                    <button id="stopTurnBtn" class="ui teal button" style="width:8em;margin-top:1em" onclick="StopTurn(); return false;">Stop Turn</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <!--
+                    <div id='fastPlay' class="ui checkbox">
+                        <input type="checkbox" name="cbFastPlay">
+                        <label style='color:whitesmoke;padding-right: 3em;'>Fast-play card on click</label>
+                    </div>
+                    <div id='validOnly' class="ui checkbox">
+                        <input type="checkbox" name="cbValidOnly">
+                        <label style='color:whitesmoke;padding-right: 3em;'>Show only valid cards in hand</label>
+                    </div>
+                    <span id="cardCount" style='color:whitesmoke'>Cards: </span>
+                        -->
+                </div>
+                
+                <div class="four wide column padded">
+                    <div class="ui raised black inverted segment" style="min-height:240px;min-width:240px">
+                        <div class="ui teal right ribbon label">Scores</div>
+                        <br />
+                        <table id="scoreTable"></table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="sixteen wide column">
+                    <hr />
+                    <div class="ui teal right button" onclick="StartGame(true); return false;">Restart Game</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id='approveDiscard' class="ui mini modal hidden">
+        <div class="header">Discard this card?</div>
+
+        <div class="content">
+            <p>Do you want to discard the <span id='discardCard'></span></p>
+            <span id='discardsRemaining'></span>
+        </div>
+        <div class="actions">
+            <div class="ui approve button">Yes</div>
+            <div class="ui cancel button">No</div>
+        </div>
+    </div>
+
+    <div id='approvePlay' class="ui mini modal hidden">
+        <div class="header">Play this card?</div>
+        <div class="content">
+            <p>Do you want to play the <span id='cardToPlay'></span>?</p>
+        </div>
+        <div class="actions">
+            <div class="ui approve button">Yes</div>
+            <div class="ui cancel button">No</div>
+        </div>
+    </div>
+
+
+    <div id='gameCompleted' class="ui mini inverted modal hidden">
+        <div id="winner" class="header"></div>
+        <div class="content">
+            <p><span id='loser'></span><p>
+                <hr />
+                <img id="gameCompletedImg" style="width:100%" src="" />
+        </div>
+        <div class="actions">
+            <div class="ui approve button">Continue</div>
+        </div>
+    </div>
+
+    <div id="join" class="ui overlay fullscreen modal">
+        <div class="header">Welcome to Cosmic Wimpout!</div>
+        <div class="content">
+            <div id='joinpanel' style="width:50%">
+
+                <div id='joinMsg' class="ui green message">
+                    <div class="header">Enter your name below.</div>
+                </div>
+
+                <div class="ui labeled input">
+                    <div class="ui label">Name:</div>
+                    <input id="username1" type="text" placeholder="Your name..." />
+                </div>
+                <hr />
+                <br />
+                <div class="header">Active Games</div>
+                <div id="noActiveGames" style="padding-left:2em">There are currently no active games</div>
+                <div id="activeGames" class="ui segment">
+                    <div id="joinRoomsList" class="ui relaxed divided list">
+                    </div>
+                </div>
+                <hr />
+                <br />
+                <div class="header">OR</div>
+                <br />
+                <div class="ui teal button" onclick="StartNewRoom(); return false;">Start a New Table</div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>
